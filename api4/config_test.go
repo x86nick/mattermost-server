@@ -4,8 +4,10 @@
 package api4
 
 import (
+	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -13,6 +15,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func mustReadTestFile(t *testing.T, filename string) string {
+	contents, err := ioutil.ReadFile(filepath.Join("tests", filename))
+	require.NoError(t, err)
+	return string(contents)
+}
 
 func TestGetConfig(t *testing.T) {
 	th := Setup(t).InitBasic()
@@ -550,4 +558,58 @@ func TestPatchConfig(t *testing.T) {
 		CheckNoError(t, resp)
 		require.Equal(t, nonEmptyURL, *cfg.ServiceSettings.SiteURL)
 	})
+}
+
+func TestUpdateConfigSubpath(t *testing.T) {
+	th := Setup(t).InitBasic()
+	defer th.TearDown()
+
+	// Read the test file contents
+	baseRootHtml := mustReadTestFile(t, "base-root.html")
+	baseCss := mustReadTestFile(t, "base.css")
+	baseManifestJson := mustReadTestFile(t, "base-manifest.json")
+	subpathRootHtml := mustReadTestFile(t, "subpath-root.html")
+	subpathCss := mustReadTestFile(t, "subpath.css")
+	subpathManifestJson := mustReadTestFile(t, "subpath-manifest.json")
+
+	t.Run("An unprivileged user should not be able to update the config subpath", func(t *testing.T) {
+		_, response := th.Client.UpdateConfigSubpath("")
+		CheckForbiddenStatus(t, response)
+	})
+
+	th.TestForSystemAdminAndLocal(t, func(t *testing.T, client *model.Client4) {
+		tempDir, err := ioutil.TempDir("", "mm_test_update_config_subpath")
+		require.NoError(t, err)
+		defer os.RemoveAll(tempDir)
+		os.Chdir(tempDir)
+
+		err = os.Mkdir(model.CLIENT_DIR, 0700)
+		require.NoError(t, err)
+
+		// Create the test files in the directory
+		ioutil.WriteFile(filepath.Join(tempDir, model.CLIENT_DIR, "root.html"), []byte(baseRootHtml), 0700)
+		ioutil.WriteFile(filepath.Join(tempDir, model.CLIENT_DIR, "main.css"), []byte(baseCss), 0700)
+		ioutil.WriteFile(filepath.Join(tempDir, model.CLIENT_DIR, "manifest.json"), []byte(baseManifestJson), 0700)
+
+		// Run the request
+		_, response := client.UpdateConfigSubpath("/subpath")
+		CheckNoError(t, response)
+
+		// Check that the files have the expected contents
+		contents, err := ioutil.ReadFile(filepath.Join(model.CLIENT_DIR, "root.html"))
+		require.NoError(t, err)
+
+		// Rewrite the expected and contents for simpler diffs when failed.
+		expectedRootHTML := strings.Replace(subpathRootHtml, ">", ">\n", -1)
+		contentsStr := strings.Replace(string(contents), ">", ">\n", -1)
+		require.Equal(t, expectedRootHTML, contentsStr)
+
+		contents, err = ioutil.ReadFile(filepath.Join(model.CLIENT_DIR, "main.css"))
+		require.NoError(t, err)
+		require.Equal(t, subpathCss, string(contents))
+
+		contents, err = ioutil.ReadFile(filepath.Join(model.CLIENT_DIR, "manifest.json"))
+		require.NoError(t, err)
+		require.Equal(t, subpathManifestJson, string(contents))
+	}, "A sysadmin should be able to update the config subpath")
 }

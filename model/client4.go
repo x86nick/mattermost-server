@@ -3293,6 +3293,18 @@ func (c *Client4) UpdateConfig(config *Config) (*Config, *Response) {
 	return ConfigFromJson(r.Body), BuildResponse(r)
 }
 
+// UpdateConfigSubpath will update the client asset subpath
+func (c *Client4) UpdateConfigSubpath(path string) (bool, *Response) {
+	r, err := c.DoApiPut(c.GetConfigRoute()+"/subpath", StringInterfaceToJson(map[string]interface{}{
+		"path": path,
+	}))
+	if err != nil {
+		return false, BuildErrorResponse(r, err)
+	}
+	defer closeBody(r)
+	return true, BuildResponse(r)
+}
+
 // UploadLicenseFile will add a license file to the system.
 func (c *Client4) UploadLicenseFile(data []byte) (bool, *Response) {
 	body := &bytes.Buffer{}

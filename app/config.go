@@ -59,6 +59,20 @@ func (a *App) UpdateConfig(f func(*model.Config)) {
 	a.Srv().UpdateConfig(f)
 }
 
+func (a *App) UpdateConfigSubpath(path string) *model.AppError {
+	var err error
+	if path == "" {
+		err = utils.UpdateAssetsSubpathFromConfig(a.Config())
+	} else {
+		err = utils.UpdateAssetsSubpath(path)
+	}
+
+	if err != nil {
+		return model.NewAppError("updateConfigSubpath", "app.update_config_subpath.app_error", nil, err.Error(), http.StatusInternalServerError)
+	}
+	return nil
+}
+
 func (s *Server) ReloadConfig() error {
 	debug.FreeOSMemory()
 	if err := s.configStore.Load(); err != nil {

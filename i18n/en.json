@@ -4063,6 +4063,10 @@
     "translation": "No terms of service found."
   },
   {
+    "id": "app.update_config_subpath.app_error",
+    "translation": "Unable to update config subpath"
+  },
+  {
     "id": "app.user.complete_switch_with_oauth.blank_email.app_error",
     "translation": "Unable to complete SAML login with an empty email address."
   },

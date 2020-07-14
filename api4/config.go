@@ -20,6 +20,7 @@ func (api *API) InitConfig() {
 	api.BaseRoutes.ApiRoot.Handle("/config/reload", api.ApiSessionRequired(configReload)).Methods("POST")
 	api.BaseRoutes.ApiRoot.Handle("/config/client", api.ApiHandler(getClientConfig)).Methods("GET")
 	api.BaseRoutes.ApiRoot.Handle("/config/environment", api.ApiSessionRequired(getEnvironmentConfig)).Methods("GET")
+	api.BaseRoutes.ApiRoot.Handle("/config/subpath", api.ApiSessionRequired(updateConfigSubpath)).Methods("PUT")
 }
 
 func getConfig(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -226,4 +227,34 @@ func patchConfig(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Write([]byte(c.App.GetSanitizedConfig().ToJson()))
+}
+
+func updateConfigSubpath(c *Context, w http.ResponseWriter, r *http.Request) {
+	props := model.StringInterfaceFromJson(r.Body)
+	path, ok := props["path"].(string)
+	if !ok {
+		c.SetInvalidParam("path")
+		return
+	}
+
+	auditRec := c.MakeAuditRecord("updateConfigSubpath", audit.Fail)
+	defer c.LogAuditRec(auditRec)
+	auditRec.AddMeta("path", path)
+
+	if !c.App.SessionHasPermissionTo(*c.App.Session(), model.PERMISSION_MANAGE_SYSTEM) {
+		c.SetPermissionError(model.PERMISSION_MANAGE_SYSTEM)
+		return
+	}
+
+	if *c.App.Config().ExperimentalSettings.RestrictSystemAdmin {
+		c.Err = model.NewAppError("configReload", "api.restricted_system_admin", nil, "", http.StatusBadRequest)
+		return
+	}
+
+	if err := c.App.UpdateConfigSubpath(path); err != nil {
+		c.Err = err
+		return
+	}
+
+	ReturnStatusOK(w)
 }
