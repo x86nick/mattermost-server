@@ -457,8 +457,7 @@ func (s SqlTeamStore) SearchAll(term string, opts *model.TeamSearch) ([]*model.T
 	var teams []*model.Team
 
 	queryString, args, err := s.teamSearchQuery(term, opts, false).ToSql()
-	fmt.Println(queryString)
-	fmt.Println(args)
+
 	if err != nil {
 		return nil, model.NewAppError("SqlTeamStore.SearchAll", "store.sql.build_query.app_error", nil, err.Error(), http.StatusInternalServerError)
 	}
@@ -476,8 +475,7 @@ func (s SqlTeamStore) SearchAllPaged(term string, opts *model.TeamSearch) ([]*mo
 	var totalCount int64
 
 	queryString, args, err := s.teamSearchQuery(term, opts, false).ToSql()
-	fmt.Println(queryString)
-	fmt.Println(args)
+
 	if err != nil {
 		return nil, 0, model.NewAppError("SqlTeamStore.SearchAllPage", "store.sql.build_query.app_error", nil, err.Error(), http.StatusInternalServerError)
 	}
