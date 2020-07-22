@@ -407,10 +407,10 @@ func (s SqlTeamStore) teamSearchQuery(term string, opts *model.TeamSearch, count
 
 	var teamFilters sq.Sqlizer
 	var openInviteFilter sq.Sqlizer
-	if opts.AllowOpenInvite || opts.ExcludeAllowOpenInvite {
-		if opts.AllowOpenInvite {
+	if opts.AllowOpenInvite != nil {
+		if *opts.AllowOpenInvite {
 			openInviteFilter = sq.Eq{"AllowOpenInvite": true}
-		} else if opts.ExcludeAllowOpenInvite {
+		} else {
 			openInviteFilter = sq.Or{
 				sq.NotEq{"AllowOpenInvite": true},
 				sq.Eq{"AllowOpenInvite": nil},
@@ -421,10 +421,10 @@ func (s SqlTeamStore) teamSearchQuery(term string, opts *model.TeamSearch, count
 	}
 
 	var groupConstrainedFilter sq.Sqlizer
-	if opts.GroupConstrained || opts.ExcludeGroupConstrained {
-		if opts.GroupConstrained {
+	if opts.GroupConstrained != nil {
+		if *opts.GroupConstrained {
 			groupConstrainedFilter = sq.Eq{"GroupConstrained": true}
-		} else if opts.ExcludeGroupConstrained {
+		} else {
 			groupConstrainedFilter = sq.Or{
 				sq.NotEq{"GroupConstrained": true},
 				sq.Eq{"GroupConstrained": nil},
@@ -435,14 +435,6 @@ func (s SqlTeamStore) teamSearchQuery(term string, opts *model.TeamSearch, count
 			teamFilters = groupConstrainedFilter
 		} else {
 			teamFilters = sq.And{teamFilters, groupConstrainedFilter}
-		}
-	}
-
-	if opts.IncludeGroupConstrained {
-		if teamFilters == nil {
-			teamFilters = sq.Eq{"GroupConstrained": true}
-		} else {
-			teamFilters = sq.Or{teamFilters, sq.Eq{"GroupConstrained": true}}
 		}
 	}
 
