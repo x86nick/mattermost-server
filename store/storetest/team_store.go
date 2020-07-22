@@ -366,6 +366,18 @@ func testTeamStoreSearchAll(t *testing.T, ss store.Store) {
 			1,
 			[]string{p.Id},
 		},
+		{
+			"Search for all 3 teams filter by include group constrained and open invite true",
+			&model.TeamSearch{Term: "zzzzzz", IncludeGroupConstrained: model.NewBool(true), AllowOpenInvite: model.NewBool(true)},
+			2,
+			[]string{g.Id, o.Id},
+		},
+		{
+			"Search for all 3 teams filter by include group constrained and open invite false",
+			&model.TeamSearch{Term: "zzzzzz", IncludeGroupConstrained: model.NewBool(true), AllowOpenInvite: model.NewBool(false)},
+			2,
+			[]string{g.Id, p.Id},
+		},
 	}
 
 	for _, tc := range testCases {
